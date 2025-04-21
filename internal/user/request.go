@@ -6,15 +6,15 @@ type CreateUserRequest struct {
 }
 
 type GetUserRequest struct {
-	UserId string `params:"user_id"`
+	UserId string `uri:"user_id"`
 }
 
 type DeleteUserRequest struct {
-	UserId string `params:"user_id"`
+	UserId string `uri:"user_id"`
 }
 
 type UpdateUserRequest struct {
-	UserId      string  `params:"user_id"`
-	NewUsername *string `json:"username"`
-	NewEmail    *string `json:"email"`
+	UserId      string  `uri:"user_id"`
+	NewUsername *string `json:"username,omitempty"`
+	NewEmail    *string `json:"email,omitempty"`
 }

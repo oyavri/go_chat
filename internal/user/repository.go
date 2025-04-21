@@ -50,13 +50,14 @@ func (r *UserRepository) UpdateUserById(userId string, newUsername *string, newE
 		if newUsername != nil {
 			user.Username = *newUsername
 		}
-
 		if newEmail != nil {
 			user.Email = *newEmail
 		}
 
 		user.UpdatedAt = time.Now()
 		r.users[userId] = user
+
+		user = r.users[userId]
 		return user, nil
 	}
 

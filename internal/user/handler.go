@@ -88,6 +88,11 @@ func (h *UserHandler) UpdateUserHandler(ctx *gin.Context) {
 		return
 	}
 
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
 	user, err := h.service.UpdateUserById(req.UserId, req.NewUsername, req.NewEmail)
 
 	if err != nil {

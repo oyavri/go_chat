@@ -1,9 +1,7 @@
 package main
 
-import (
-	"go_chat/internal"
-)
+import "go_chat/internal/app"
 
 func main() {
-	internal.Run()
+	app.Run()
 }

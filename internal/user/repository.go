@@ -1,6 +1,7 @@
 package user
 
 import (
+	"errors"
 	"time"
 )
 
@@ -24,14 +25,22 @@ func (r *UserRepository) CreateUser(user User) error {
 }
 
 func (r *UserRepository) GetUserById(userId string) (User, error) {
+	if _, ok := r.users[userId]; !ok {
+		return User{}, &UserDoesNotExistError{}
+	}
+
 	if user, ok := r.users[userId]; ok {
 		return user, nil
 	}
 
-	return User{}, &UserDoesNotExistError{"User does not exist"}
+	return User{}, errors.New("unknown error when trying to get user by ID")
 }
 
 func (r *UserRepository) DeleteUserById(userId string) error {
+	if _, ok := r.users[userId]; !ok {
+		return &UserDoesNotExistError{}
+	}
+
 	if user, ok := r.users[userId]; ok {
 		user.DeletedAt = time.Now()
 		user.Deleted = true
@@ -39,13 +48,14 @@ func (r *UserRepository) DeleteUserById(userId string) error {
 		return nil
 	}
 
-	return &UserDoesNotExistError{"User does not exist"}
+	return errors.New("unknown error when trying to delete user by ID")
 }
 
-// Not sure how I should change the user
 func (r *UserRepository) UpdateUserById(userId string, newUsername *string, newEmail *string) (User, error) {
-	// Would it be better to carry the code inside the if clause
-	// to outside to prevent if-hadouken (IDK if it occurs in Go)
+	if _, ok := r.users[userId]; !ok {
+		return User{}, &UserDoesNotExistError{}
+	}
+
 	if user, ok := r.users[userId]; ok {
 		if newUsername != nil {
 			user.Username = *newUsername
@@ -61,5 +71,5 @@ func (r *UserRepository) UpdateUserById(userId string, newUsername *string, newE
 		return user, nil
 	}
 
-	return User{}, &UserDoesNotExistError{"User does not exist"}
+	return User{}, errors.New("unknown error when trying to update user by ID")
 }

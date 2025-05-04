@@ -8,13 +8,12 @@ func (e *UserDoesNotExistError) Error() string {
 	return e.s
 }
 
-func (e *UserDoesNotExistError) New(message string) error {
+func (e *UserDoesNotExistError) New() error {
 	return &UserDoesNotExistError{
-		message,
+		"User does not exist",
 	}
 }
 
-// Should HTTP codes of the errors exist in this domain?
 type UserAlreadyExistsError struct {
 	s string
 }
@@ -23,9 +22,8 @@ func (e *UserAlreadyExistsError) Error() string {
 	return e.s
 }
 
-// The name is already descriptive, should the message be variable?
-func (e *UserAlreadyExistsError) New(message string) error {
+func (e *UserAlreadyExistsError) New() error {
 	return &UserAlreadyExistsError{
-		message,
+		"User already exists",
 	}
 }

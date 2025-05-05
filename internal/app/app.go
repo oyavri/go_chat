@@ -1,9 +1,13 @@
 package app
 
 import (
+	"context"
 	"go_chat/internal/chat"
 	"go_chat/internal/config"
+	"go_chat/internal/database"
 	"go_chat/internal/user"
+	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,11 +15,27 @@ import (
 func Run() {
 	cfg := config.GetConfig()
 
-	chatRepo := chat.NewChatRepository()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	chatPool, err := database.NewPostgresPool(ctx, cfg.DbChatConnUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	chatRepo := chat.NewChatRepository(chatPool)
 	chatService := chat.NewChatService(chatRepo)
 	chatHandler := chat.NewChatHandler(chatService)
 
-	userRepo := user.NewUserRepository()
+	userCtx, userCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer userCancel()
+
+	userPool, err := database.NewPostgresPool(userCtx, cfg.DbUserConnUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	userRepo := user.NewUserRepository(userPool)
 	userService := user.NewUserService(userRepo)
 	userHandler := user.NewUserHandler(userService)
 
@@ -34,5 +54,10 @@ func Run() {
 	router.GET("/chats/:chat_id/messages", chatHandler.GetMessagesHandler)
 	router.POST("/chats/:chat_id/messages", chatHandler.SendMessageHandler)
 
-	router.Run(":" + cfg.Port)
+	router.Run(cfg.Hostname + ":" + cfg.Port)
+
+	// Refactor later for graceful shutdown.
+	// Close pools for the connections.
+	chatPool.Close()
+	userPool.Close()
 }

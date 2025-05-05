@@ -1,14 +1,18 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
-type config struct {
-	Port string
+type Config struct {
+	Port          string
+	Hostname      string
+	DbChatConnUrl string
+	DbUserConnUrl string
 }
 
 func init() {
@@ -18,8 +22,22 @@ func init() {
 	}
 }
 
-func GetConfig() *config {
-	return &config{
-		Port: os.Getenv("PORT"),
+func GetConfig() *Config {
+	DbPort := os.Getenv("DB_PORT")
+	DbUsername := os.Getenv("DB_USERNAME")
+	DbPassword := os.Getenv("DB_PASSWORD")
+	DbHostname := os.Getenv("DB_HOSTNAME")
+	DbNameUser := os.Getenv("DB_NAME_USERS")
+	DbNameChat := os.Getenv("DB_NAME_CHATS")
+
+	baseConnUrl := fmt.Sprintf("postgres://%v:%v@%v:%v/", DbUsername, DbPassword, DbHostname, DbPort)
+	chatConnUrl := baseConnUrl + DbNameChat
+	userConnUrl := baseConnUrl + DbNameUser
+
+	return &Config{
+		Port:          os.Getenv("PORT"),
+		Hostname:      os.Getenv("HOSTNAME"),
+		DbChatConnUrl: chatConnUrl,
+		DbUserConnUrl: userConnUrl,
 	}
 }

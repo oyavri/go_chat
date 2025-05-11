@@ -14,7 +14,7 @@ type DeleteUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	UserId      string  `uri:"user_id"`
+	UserId      *string `uri:"user_id"`
 	NewUsername *string `json:"username,omitempty"`
 	NewEmail    *string `json:"email,omitempty"`
 }

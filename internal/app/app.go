@@ -22,6 +22,7 @@ func Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer chatPool.Close()
 
 	chatRepo := chat.NewChatRepository(chatPool)
 	chatService := chat.NewChatService(chatRepo)
@@ -34,6 +35,7 @@ func Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer userPool.Close()
 
 	userRepo := user.NewUserRepository(userPool)
 	userService := user.NewUserService(userRepo)
@@ -55,9 +57,4 @@ func Run() {
 	router.POST("/chats/:chat_id/messages", chatHandler.SendMessageHandler)
 
 	router.Run(cfg.Hostname + ":" + cfg.Port)
-
-	// Refactor later for graceful shutdown.
-	// Close pools for the connections.
-	chatPool.Close()
-	userPool.Close()
 }

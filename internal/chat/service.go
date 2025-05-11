@@ -1,7 +1,7 @@
 package chat
 
 import (
-	"github.com/google/uuid"
+	"context"
 )
 
 type ChatService struct {
@@ -14,28 +14,28 @@ func NewChatService(repo *ChatRepository) *ChatService {
 	}
 }
 
-func (s *ChatService) CreateChat() (Chat, error) {
-	chat := Chat{
-		Id:       uuid.New().String(),
-		Messages: []Message{},
+// Is this method necessary?
+func (s *ChatService) CreateChat(ctx context.Context) (Chat, error) {
+	err := s.repo.SaveChat(ctx)
+	if err != nil {
+		return err
 	}
 
-	err := s.repo.SaveChat(chat)
-	return chat, err
+	return nil
 }
 
-func (s *ChatService) SendMessage(request SendMessageRequest) (Message, error) {
+func (s *ChatService) SendMessage(ctx context.Context, request SendMessageRequest) (Message, error) {
+	// add cache for existance of the chat
 	message := Message{
-		Id:      uuid.New().String(),
-		From:    request.From,
-		To:      request.To,
+		UserId:  request.UserId,
+		ChatId:  request.ChatId,
 		Content: request.Content,
 	}
 
-	err := s.repo.SaveMessage(request.ChatId, message)
+	err := s.repo.SaveMessage(ctx, message)
 	return message, err
 }
 
-func (s *ChatService) GetMessages(chatId string) ([]Message, error) {
-	return s.repo.GetMessages(chatId)
+func (s *ChatService) GetMessages(ctx context.Context, chatId string, messageCount int, offset int) ([]Message, error) {
+	return s.repo.GetMessages(ctx, chatId, messageCount, offset)
 }

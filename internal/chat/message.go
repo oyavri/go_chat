@@ -2,7 +2,7 @@ package chat
 
 type Message struct {
 	Id      string `json:"id"`
-	From    string `json:"from"`
-	To      string `json:"to"`
+	UserId  string `json:"user_id"`
+	ChatId  string `json:"chat_id"`
 	Content string `json:"content"`
 }

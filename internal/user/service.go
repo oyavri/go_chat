@@ -1,9 +1,7 @@
 package user
 
 import (
-	"time"
-
-	"github.com/google/uuid"
+	"context"
 )
 
 type UserService struct {
@@ -16,27 +14,23 @@ func NewUserService(repo *UserRepository) *UserService {
 	}
 }
 
-func (s *UserService) CreateUser(req CreateUserRequest) (User, error) {
-	user := User{
-		Id:        uuid.New().String(),
-		Username:  req.Username,
-		Email:     req.Email,
-		CreatedAt: time.Now(),
-		Deleted:   false,
+func (s *UserService) CreateUser(ctx context.Context, req CreateUserRequest) (User, error) {
+	user, err := s.repo.CreateUser(ctx, req)
+	if err != nil {
+		return User{}, err
 	}
 
-	err := s.repo.CreateUser(user)
-	return user, err
+	return user, nil
 }
 
-func (s *UserService) GetUserById(userId string) (User, error) {
-	return s.repo.GetUserById(userId)
+func (s *UserService) GetUserById(ctx context.Context, userId string) (User, error) {
+	return s.repo.GetUserById(ctx, userId)
 }
 
-func (s *UserService) DeleteUserById(userId string) error {
-	return s.repo.DeleteUserById(userId)
+func (s *UserService) DeleteUserById(ctx context.Context, userId string) (User, error) {
+	return s.repo.DeleteUserById(ctx, userId)
 }
 
-func (s *UserService) UpdateUserById(userId string, newUsername *string, newEmail *string) (User, error) {
-	return s.repo.UpdateUserById(userId, newUsername, newEmail)
+func (s *UserService) UpdateUserById(ctx context.Context, userId *string, newUsername *string, newEmail *string) (User, error) {
+	return s.repo.UpdateUserById(ctx, userId, newUsername, newEmail)
 }

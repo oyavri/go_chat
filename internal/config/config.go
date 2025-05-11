@@ -27,8 +27,7 @@ func GetConfig() *Config {
 	DbUsername := os.Getenv("DB_USERNAME")
 	DbPassword := os.Getenv("DB_PASSWORD")
 	DbHostname := os.Getenv("DB_HOSTNAME")
-	DbNameUser := os.Getenv("DB_NAME_USERS")
-	DbNameChat := os.Getenv("DB_NAME_CHATS")
+	DbNameUser := os.Getenv("DB_NAME")
 
 	baseConnUrl := fmt.Sprintf("postgres://%v:%v@%v:%v/", DbUsername, DbPassword, DbHostname, DbPort)
 	chatConnUrl := baseConnUrl + DbNameChat

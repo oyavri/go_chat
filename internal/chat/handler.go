@@ -17,14 +17,15 @@ func NewChatHandler(service *ChatService) *ChatHandler {
 }
 
 func (h *ChatHandler) CreateChatHandler(ctx *gin.Context) {
-	chat, err := h.service.CreateChat()
+	err := h.service.CreateChat(ctx.Request.Context())
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create chat"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, chat)
+	// Needs a proper JSON response
+	ctx.JSON(http.StatusOK, gin.H{"success": "true"})
 }
 
 // POST /chats/:chat_id/messages
@@ -42,7 +43,7 @@ func (h *ChatHandler) SendMessageHandler(ctx *gin.Context) {
 		return
 	}
 
-	message, err := h.service.SendMessage(req)
+	message, err := h.service.SendMessage(ctx.Request.Context(), req)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send message"})
@@ -61,7 +62,7 @@ func (h *ChatHandler) GetMessagesHandler(ctx *gin.Context) {
 		return
 	}
 
-	messages, err := h.service.GetMessages(req.ChatId)
+	messages, err := h.service.GetMessages(ctx.Request.Context(), req.ChatId, req.MessageCount, req.Offset)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get messages"})

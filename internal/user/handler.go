@@ -31,7 +31,7 @@ func (h *UserHandler) CreateUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	user, err := h.service.CreateUser(req)
+	user, err := h.service.CreateUser(ctx.Request.Context(), req)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
@@ -50,7 +50,7 @@ func (h *UserHandler) GetUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	user, err := h.service.GetUserById(req.UserId)
+	user, err := h.service.GetUserById(ctx.Request.Context(), req.UserId)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
@@ -69,7 +69,8 @@ func (h *UserHandler) DeleteUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	err := h.service.DeleteUserById(req.UserId)
+	// For now, the returned user is discarded
+	_, err := h.service.DeleteUserById(ctx.Request.Context(), req.UserId)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
@@ -93,7 +94,7 @@ func (h *UserHandler) UpdateUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	user, err := h.service.UpdateUserById(req.UserId, req.NewUsername, req.NewEmail)
+	user, err := h.service.UpdateUserById(ctx.Request.Context(), req.UserId, req.NewUsername, req.NewEmail)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})

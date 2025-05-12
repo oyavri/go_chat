@@ -1,6 +1,7 @@
-INSERT INTO user (username, email) 
-VALUES ($1, $2) 
-RETURNING  
+UPDATE user 
+SET %s 
+WHERE username = $%d 
+RETURNING 
     id,
     username,
     email,

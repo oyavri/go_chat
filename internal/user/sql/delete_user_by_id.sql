@@ -1,6 +1,8 @@
-INSERT INTO user (username, email) 
-VALUES ($1, $2) 
-RETURNING  
+UPDATE user 
+SET deleted = true, 
+    deleted_at = NOW() 
+WHERE id = $1 
+RETURNING 
     id,
     username,
     email,

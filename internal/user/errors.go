@@ -27,3 +27,18 @@ func (e *UserAlreadyExistsError) New() error {
 		"User already exists",
 	}
 }
+
+// For later use:
+type UsernameIsTakenError struct {
+	s string
+}
+
+func (e *UsernameIsTakenError) Error() string {
+	return e.s
+}
+
+func (e *UsernameIsTakenError) New() error {
+	return &UsernameIsTakenError{
+		"Username is already taken",
+	}
+}

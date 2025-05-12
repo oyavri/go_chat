@@ -6,6 +6,15 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var (
+	// go:embed sql/create_chat.sql
+	createChatQuery string
+	// go:embed sql/save_message.sql
+	saveMessageQuery string
+	// go:embed sql/get_messages_by_id.sql
+	getMessagesByIdQuery string
+)
+
 type ChatRepository struct {
 	pool *pgxpool.Pool
 }
@@ -16,10 +25,7 @@ func NewChatRepository(pool *pgxpool.Pool) *ChatRepository {
 
 func (r *ChatRepository) SaveChat(ctx context.Context) error {
 	// Since this is not a variadic query, no need to use named args
-	query := `INSERT INTO chat (id) 
-			  VALUES (DEFAULT)`
-
-	if _, err := r.pool.Exec(ctx, query); err != nil {
+	if _, err := r.pool.Exec(ctx, createChatQuery); err != nil {
 		return err
 	}
 
@@ -27,10 +33,7 @@ func (r *ChatRepository) SaveChat(ctx context.Context) error {
 }
 
 func (r *ChatRepository) SaveMessage(ctx context.Context, message Message) error {
-	query := `INSERT INTO chat_message (user_id, chat_id, content) 
-			  VALUES ($1, $2, $3)`
-
-	if _, err := r.pool.Exec(ctx, query, message.UserId, message.ChatId, message.Content); err != nil {
+	if _, err := r.pool.Exec(ctx, saveMessageQuery, message.UserId, message.ChatId, message.Content); err != nil {
 		return err
 	}
 
@@ -38,20 +41,9 @@ func (r *ChatRepository) SaveMessage(ctx context.Context, message Message) error
 }
 
 func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, messageCount int, offset int) ([]Message, error) {
-	query := `SELECT * FROM chat_message 
-			  JOIN chat ON chat_message.chat_id = chat.id 
-			  WHERE chat.id = $1 
-			  ORDER BY chat_message.created_at 
-			  LIMIT $2 
-			  OFFSET $3`
-
 	count := messageCount
-	// Hard-coded limit for now.
-	if count > 30 {
-		count = 30
-	}
 
-	rows, err := r.pool.Query(ctx, query, chatId, count, offset)
+	rows, err := r.pool.Query(ctx, getMessagesByIdQuery, chatId, count, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +52,13 @@ func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, message
 	var messages []Message
 	for rows.Next() {
 		var message Message
-		err := rows.Scan(&message.Id, &message.UserId, &message.ChatId, &message.Content)
+		err := rows.Scan(
+			&message.Id,
+			&message.UserId,
+			&message.ChatId,
+			&message.Content,
+		)
+
 		if err != nil {
 			return nil, err
 		}

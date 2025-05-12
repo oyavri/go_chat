@@ -9,10 +9,9 @@ import (
 )
 
 type Config struct {
-	Port          string
-	Hostname      string
-	DbChatConnUrl string
-	DbUserConnUrl string
+	Port            string
+	Hostname        string
+	DbConnectionUrl string
 }
 
 func init() {
@@ -30,13 +29,11 @@ func GetConfig() *Config {
 	DbNameUser := os.Getenv("DB_NAME")
 
 	baseConnUrl := fmt.Sprintf("postgres://%v:%v@%v:%v/", DbUsername, DbPassword, DbHostname, DbPort)
-	chatConnUrl := baseConnUrl + DbNameChat
-	userConnUrl := baseConnUrl + DbNameUser
+	connectionUrl := baseConnUrl + DbNameUser
 
 	return &Config{
-		Port:          os.Getenv("PORT"),
-		Hostname:      os.Getenv("HOSTNAME"),
-		DbChatConnUrl: chatConnUrl,
-		DbUserConnUrl: userConnUrl,
+		Port:            os.Getenv("PORT"),
+		Hostname:        os.Getenv("HOSTNAME"),
+		DbConnectionUrl: connectionUrl,
 	}
 }

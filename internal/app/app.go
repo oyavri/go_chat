@@ -18,26 +18,17 @@ func Run() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	chatPool, err := database.NewPostgresPool(ctx, cfg.DbChatConnUrl)
+	pool, err := database.NewPostgresPool(ctx, cfg.DbConnectionUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer chatPool.Close()
+	defer pool.Close()
 
-	chatRepo := chat.NewChatRepository(chatPool)
+	chatRepo := chat.NewChatRepository(pool)
 	chatService := chat.NewChatService(chatRepo)
 	chatHandler := chat.NewChatHandler(chatService)
 
-	userCtx, userCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer userCancel()
-
-	userPool, err := database.NewPostgresPool(userCtx, cfg.DbUserConnUrl)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer userPool.Close()
-
-	userRepo := user.NewUserRepository(userPool)
+	userRepo := user.NewUserRepository(pool)
 	userService := user.NewUserService(userRepo)
 	userHandler := user.NewUserHandler(userService)
 

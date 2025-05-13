@@ -9,6 +9,8 @@ import (
 var (
 	// go:embed sql/create_chat.sql
 	createChatQuery string
+	// go:embed sql/add_chat_member_by_id.sql
+	addChatMemberByIdQuery string
 	// go:embed sql/save_message.sql
 	saveMessageQuery string
 	// go:embed sql/get_messages_by_id.sql
@@ -23,21 +25,61 @@ func NewChatRepository(pool *pgxpool.Pool) *ChatRepository {
 	return &ChatRepository{pool: pool}
 }
 
-func (r *ChatRepository) SaveChat(ctx context.Context) error {
-	// Since this is not a variadic query, no need to use named args
-	if _, err := r.pool.Exec(ctx, createChatQuery); err != nil {
-		return err
+func (r *ChatRepository) SaveChat(ctx context.Context, userIdList []string) (Chat, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return Chat{}, err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		} else {
+			tx.Commit(ctx)
+		}
+	}()
+
+	var chatId string
+	err = tx.QueryRow(ctx, createChatQuery).
+		Scan(&chatId)
+	if err != nil {
+		return Chat{}, err
 	}
 
-	return nil
+	var insertedUserIdList []string
+	var addedUserId string
+
+	for _, userId := range userIdList {
+		err := tx.QueryRow(ctx, addChatMemberByIdQuery, chatId, userId).
+			Scan(&addedUserId)
+		if err != nil {
+			return Chat{}, err
+		}
+
+		insertedUserIdList = append(insertedUserIdList, addedUserId)
+	}
+
+	return Chat{
+		Id:      chatId,
+		Members: insertedUserIdList,
+	}, nil
 }
 
-func (r *ChatRepository) SaveMessage(ctx context.Context, message Message) error {
-	if _, err := r.pool.Exec(ctx, saveMessageQuery, message.UserId, message.ChatId, message.Content); err != nil {
-		return err
+func (r *ChatRepository) SaveMessage(ctx context.Context, msgReq SendMessageRequest) (Message, error) {
+	var message Message
+
+	err := r.pool.QueryRow(ctx, saveMessageQuery, msgReq.UserId, msgReq.ChatId, msgReq.Content).
+		Scan(
+			&message.Id,
+			&message.UserId,
+			&message.ChatId,
+			&message.Content,
+			&message.CreatedAt,
+		)
+	if err != nil {
+		return Message{}, err
 	}
 
-	return nil
+	return message, nil
 }
 
 func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, messageCount int, offset int) ([]Message, error) {
@@ -57,6 +99,7 @@ func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, message
 			&message.UserId,
 			&message.ChatId,
 			&message.Content,
+			&message.CreatedAt,
 		)
 
 		if err != nil {

@@ -12,7 +12,7 @@ var (
 	// go:embed sql/save_message.sql
 	saveMessageQuery string
 	// go:embed sql/get_messages_by_id.sql
-	getMessagesByIdQuery string
+	getMessagesByChatIdQuery string
 )
 
 type ChatRepository struct {
@@ -43,7 +43,7 @@ func (r *ChatRepository) SaveMessage(ctx context.Context, message Message) error
 func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, messageCount int, offset int) ([]Message, error) {
 	count := messageCount
 
-	rows, err := r.pool.Query(ctx, getMessagesByIdQuery, chatId, count, offset)
+	rows, err := r.pool.Query(ctx, getMessagesByChatIdQuery, chatId, count, offset)
 	if err != nil {
 		return nil, err
 	}

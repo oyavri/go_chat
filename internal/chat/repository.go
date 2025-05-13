@@ -2,7 +2,9 @@ package chat
 
 import (
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -15,6 +17,8 @@ var (
 	saveMessageQuery string
 	// go:embed sql/get_messages_by_id.sql
 	getMessagesByChatIdQuery string
+	// go:embed sql/is_member_of_chat_by_id.sql
+	isMemberOfChatByIdQuery string
 )
 
 type ChatRepository struct {
@@ -113,4 +117,18 @@ func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, message
 	}
 
 	return messages, nil
+}
+
+func (r *ChatRepository) IsMemberOfChatById(ctx context.Context, userId string, chatId string) (bool, error) {
+	err := r.pool.QueryRow(ctx, isMemberOfChatByIdQuery, userId, chatId).Scan()
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, &UserIsNotAMemberError{}
+		}
+
+		// if there is another type of error
+		return false, err
+	}
+
+	return true, nil
 }

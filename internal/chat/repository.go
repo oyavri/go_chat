@@ -19,6 +19,8 @@ var (
 	getMessagesByChatIdQuery string
 	// go:embed sql/is_member_of_chat_by_id.sql
 	isMemberOfChatByIdQuery string
+	// go:embed sql/get_chat_members_by_id.sql
+	getChatMembersByIdQuery string
 )
 
 type ChatRepository struct {
@@ -131,4 +133,25 @@ func (r *ChatRepository) IsMemberOfChatById(ctx context.Context, userId string, 
 	}
 
 	return true, nil
+}
+
+func (r *ChatRepository) GetChatMembersById(ctx context.Context, chatId string) ([]string, error) {
+	rows, err := r.pool.Query(ctx, getChatMembersByIdQuery, chatId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userIdList []string
+	for rows.Next() {
+		var userId string
+		err := rows.Scan(&userId)
+
+		if err != nil {
+			return nil, err
+		}
+		userIdList = append(userIdList, userId)
+	}
+
+	return userIdList, nil
 }

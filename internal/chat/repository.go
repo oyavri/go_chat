@@ -21,6 +21,8 @@ var (
 	isMemberOfChatByIdQuery string
 	// go:embed sql/get_chat_members_by_id.sql
 	getChatMembersByIdQuery string
+	// go:embed sql/get_chat_by_id.sql
+	getChatByIdQuery string
 )
 
 type ChatRepository struct {
@@ -154,4 +156,18 @@ func (r *ChatRepository) GetChatMembersById(ctx context.Context, chatId string) 
 	}
 
 	return userIdList, nil
+}
+
+func (r *ChatRepository) GetChatById(ctx context.Context, chatId string) (bool, error) {
+	err := r.pool.QueryRow(ctx, getChatByIdQuery, chatId).Scan()
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, &ChatDoesNotExistError{}
+		}
+
+		// if there is another type of error
+		return false, err
+	}
+
+	return true, nil
 }

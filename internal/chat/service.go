@@ -14,8 +14,8 @@ func NewChatService(repo *ChatRepository) *ChatService {
 	}
 }
 
-func (s *ChatService) CreateChat(ctx context.Context, userIdList []string) (Chat, error) {
-	chat, err := s.repo.SaveChat(ctx, userIdList)
+func (s *ChatService) CreateChat(ctx context.Context, chatReq CreateChatRequest) (Chat, error) {
+	chat, err := s.repo.SaveChat(ctx, chatReq.Members)
 	if err != nil {
 		return Chat{}, err
 	}

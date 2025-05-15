@@ -11,3 +11,7 @@ type GetMessagesRequest struct {
 	MessageCount int    `uri:"message_count"`
 	Offset       int    `uri:"offset"`
 }
+
+type CreateChatRequest struct {
+	Members []string `uri:"members"`
+}

@@ -17,7 +17,9 @@ func NewChatHandler(service *ChatService) *ChatHandler {
 }
 
 func (h *ChatHandler) CreateChatHandler(ctx *gin.Context) {
-	err := h.service.CreateChat(ctx.Request.Context())
+	var req CreateChatRequest
+
+	chat, err := h.service.CreateChat(ctx.Request.Context(), req)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create chat"})
@@ -25,7 +27,7 @@ func (h *ChatHandler) CreateChatHandler(ctx *gin.Context) {
 	}
 
 	// Needs a proper JSON response
-	ctx.JSON(http.StatusOK, gin.H{"success": "true"})
+	ctx.JSON(http.StatusOK, chat)
 }
 
 // POST /chats/:chat_id/messages

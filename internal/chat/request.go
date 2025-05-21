@@ -13,5 +13,5 @@ type GetMessagesRequest struct {
 }
 
 type CreateChatRequest struct {
-	Members []string `uri:"members"`
+	Members []string `json:"members"`
 }

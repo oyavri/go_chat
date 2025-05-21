@@ -19,6 +19,22 @@ func NewChatHandler(service *ChatService) *ChatHandler {
 func (h *ChatHandler) CreateChatHandler(ctx *gin.Context) {
 	var req CreateChatRequest
 
+	if err := ctx.BindUri(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid path parameter"})
+		return
+	}
+
+	// Parse JSON body
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if len(req.Members) < 1 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "A list of members must be provided to create chat"})
+		return
+	}
+
 	chat, err := h.service.CreateChat(ctx.Request.Context(), req)
 
 	if err != nil {

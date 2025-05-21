@@ -36,7 +36,7 @@ CREATE TABLE chat_message (
 
 CREATE TABLE chat_member (
     chat_id uuid NOT NULL,
-    user_id uuid NOT NULL
+    user_id uuid NOT NULL,
     FOREIGN KEY (chat_id) REFERENCES CHAT (id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,

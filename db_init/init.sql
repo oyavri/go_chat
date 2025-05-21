@@ -10,7 +10,7 @@ CREATE TABLE chat_user (
     created_at TIMESTAMP DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
-    deleted BOOLEAN NOT NULL
+    deleted BOOLEAN DEFAULT false NOT NULL
 );
 
 CREATE TABLE chat (

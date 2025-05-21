@@ -125,7 +125,7 @@ func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, message
 }
 
 func (r *ChatRepository) IsMemberOfChatById(ctx context.Context, userId string, chatId string) (bool, error) {
-	err := r.pool.QueryRow(ctx, isMemberOfChatByIdQuery, userId, chatId).Scan()
+	_, err := r.pool.Query(ctx, isMemberOfChatByIdQuery, userId, chatId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, &UserIsNotAMemberError{}

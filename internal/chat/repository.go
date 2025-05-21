@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 
 	"github.com/jackc/pgx/v5"
@@ -9,19 +10,19 @@ import (
 )
 
 var (
-	// go:embed sql/create_chat.sql
+	//go:embed sql/create_chat.sql
 	createChatQuery string
-	// go:embed sql/add_chat_member_by_id.sql
+	//go:embed sql/add_chat_member_by_id.sql
 	addChatMemberByIdQuery string
-	// go:embed sql/save_message.sql
+	//go:embed sql/save_message.sql
 	saveMessageQuery string
-	// go:embed sql/get_messages_by_id.sql
+	//go:embed sql/get_messages_by_chat_id.sql
 	getMessagesByChatIdQuery string
-	// go:embed sql/is_member_of_chat_by_id.sql
+	//go:embed sql/is_member_of_chat_by_id.sql
 	isMemberOfChatByIdQuery string
-	// go:embed sql/get_chat_members_by_id.sql
-	getChatMembersByIdQuery string
-	// go:embed sql/get_chat_by_id.sql
+	// //go:embed sql/get_chat_members_by_id.sql
+	// getChatMembersByIdQuery string
+	//go:embed sql/get_chat_by_id.sql
 	getChatByIdQuery string
 )
 
@@ -137,26 +138,26 @@ func (r *ChatRepository) IsMemberOfChatById(ctx context.Context, userId string, 
 	return true, nil
 }
 
-func (r *ChatRepository) GetChatMembersById(ctx context.Context, chatId string) ([]string, error) {
-	rows, err := r.pool.Query(ctx, getChatMembersByIdQuery, chatId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+// func (r *ChatRepository) GetChatMembersById(ctx context.Context, chatId string) ([]string, error) {
+// 	rows, err := r.pool.Query(ctx, getChatMembersByIdQuery, chatId)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
 
-	var userIdList []string
-	for rows.Next() {
-		var userId string
-		err := rows.Scan(&userId)
+// 	var userIdList []string
+// 	for rows.Next() {
+// 		var userId string
+// 		err := rows.Scan(&userId)
 
-		if err != nil {
-			return nil, err
-		}
-		userIdList = append(userIdList, userId)
-	}
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		userIdList = append(userIdList, userId)
+// 	}
 
-	return userIdList, nil
-}
+// 	return userIdList, nil
+// }
 
 func (r *ChatRepository) GetChatById(ctx context.Context, chatId string) (bool, error) {
 	err := r.pool.QueryRow(ctx, getChatByIdQuery, chatId).Scan()

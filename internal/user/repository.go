@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,19 +12,19 @@ import (
 )
 
 var (
-	// go:embed sql/create_user.sql
+	//go:embed sql/create_user.sql
 	createUserQuery string
-	// go:embed sql/get_user_by_id.sql
+	//go:embed sql/get_user_by_id.sql
 	getUserByIdQuery string
-	// go:embed sql/delete_user_by_id.sql
+	//go:embed sql/delete_user_by_id.sql
 	deleteUserByIdQuery string
-	// go:embed sql/update_user_by_id.sql
+	//go:embed sql/update_user_by_id.sql
 	updateUserByIdQuery string
-	// go:embed sql/get_user_by_username.sql
+	//go:embed sql/get_user_by_username.sql
 	getUserByUsernameQuery string
-	// go:embed sql/update_user_by_username.sql
+	//go:embed sql/update_user_by_username.sql
 	updateUserByUsernameQuery string
-	// go:embed sql/delete_user_by_username.sql
+	//go:embed sql/delete_user_by_username.sql
 	deleteUserByUsernameQuery string
 )
 
@@ -51,7 +52,8 @@ func (r *UserRepository) CreateUser(ctx context.Context, username string, email 
 
 	if err != nil {
 		// Need to check other errors, it might be due to unique username
-		return User{}, &UserAlreadyExistsError{}
+		return User{}, err
+		// return User{}, &UserAlreadyExistsError{}
 	}
 
 	return user, nil

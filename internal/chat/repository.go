@@ -72,10 +72,10 @@ func (r *ChatRepository) SaveChat(ctx context.Context, userIdList []string) (Cha
 	}, nil
 }
 
-func (r *ChatRepository) SaveMessage(ctx context.Context, msgReq SendMessageRequest) (Message, error) {
+func (r *ChatRepository) SaveMessage(ctx context.Context, userId string, chatId string, content string) (Message, error) {
 	var message Message
 
-	err := r.pool.QueryRow(ctx, saveMessageQuery, msgReq.UserId, msgReq.ChatId, msgReq.Content).
+	err := r.pool.QueryRow(ctx, saveMessageQuery, userId, chatId, content).
 		Scan(
 			&message.Id,
 			&message.UserId,

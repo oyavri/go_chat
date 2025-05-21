@@ -15,7 +15,7 @@ func NewUserService(repo *UserRepository) *UserService {
 }
 
 func (s *UserService) CreateUser(ctx context.Context, req CreateUserRequest) (User, error) {
-	user, err := s.repo.CreateUser(ctx, req)
+	user, err := s.repo.CreateUser(ctx, req.Username, req.Email)
 	if err != nil {
 		return User{}, err
 	}

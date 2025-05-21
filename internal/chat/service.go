@@ -23,12 +23,12 @@ func (s *ChatService) CreateChat(ctx context.Context, chatReq CreateChatRequest)
 	return chat, nil
 }
 
-func (s *ChatService) SendMessage(ctx context.Context, msgReq SendMessageRequest) (Message, error) {
-	if ok, err := s.repo.IsMemberOfChatById(ctx, msgReq.UserId, msgReq.ChatId); !ok {
+func (s *ChatService) SendMessage(ctx context.Context, req SendMessageRequest) (Message, error) {
+	if ok, err := s.repo.IsMemberOfChatById(ctx, req.UserId, req.ChatId); !ok {
 		return Message{}, err
 	}
 
-	return s.repo.SaveMessage(ctx, msgReq)
+	return s.repo.SaveMessage(ctx, req.UserId, req.ChatId, req.Content)
 }
 
 func (s *ChatService) GetMessages(ctx context.Context, chatId string, messageCount int, offset int) ([]Message, error) {

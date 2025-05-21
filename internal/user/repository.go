@@ -35,10 +35,10 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	return &UserRepository{pool: pool}
 }
 
-func (r *UserRepository) CreateUser(ctx context.Context, input CreateUserRequest) (User, error) {
+func (r *UserRepository) CreateUser(ctx context.Context, username string, email string) (User, error) {
 	var user User
 
-	err := r.pool.QueryRow(ctx, createUserQuery, input.Username, input.Email).
+	err := r.pool.QueryRow(ctx, createUserQuery, username, email).
 		Scan(
 			&user.Id,
 			&user.Username,
@@ -176,7 +176,7 @@ func (r *UserRepository) GetUserByUsername(ctx context.Context, username string)
 			return User{}, &UserDoesNotExistError{}
 		}
 
-		return User{}, errors.New("unknown error when trying to GET user by ID")
+		return User{}, errors.New("unknown error when trying to GET user by username")
 	}
 
 	return user, nil
@@ -199,7 +199,7 @@ func (r *UserRepository) DeleteUserByUsername(ctx context.Context, username stri
 		if errors.Is(err, pgx.ErrNoRows) {
 			return User{}, &UserDoesNotExistError{}
 		}
-		return User{}, errors.New("unknown error when trying to DELETE user by ID")
+		return User{}, errors.New("unknown error when trying to DELETE user by username")
 	}
 
 	return user, nil
@@ -252,7 +252,7 @@ func (r *UserRepository) UpdateUserByUsername(ctx context.Context, userId *strin
 			return User{}, &UserDoesNotExistError{}
 		}
 		// There might be a conflict on username
-		return User{}, errors.New("unknown error when trying to DELETE user by ID")
+		return User{}, errors.New("unknown error when trying to DELETE user by username")
 	}
 
 	return user, nil

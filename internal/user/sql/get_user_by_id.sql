@@ -1,3 +1,3 @@
 SELECT * 
-FROM user 
+FROM chat_user 
 WHERE id = $1

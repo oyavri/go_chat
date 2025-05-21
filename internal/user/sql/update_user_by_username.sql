@@ -1,4 +1,4 @@
-UPDATE user 
+UPDATE chat_user 
 SET %s 
 WHERE username = $%d 
 RETURNING 

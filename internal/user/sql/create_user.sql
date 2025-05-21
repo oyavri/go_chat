@@ -1,4 +1,4 @@
-INSERT INTO user (username, email) 
+INSERT INTO chat_user (username, email) 
 VALUES ($1, $2) 
 RETURNING  
     id,

@@ -1,4 +1,4 @@
-UPDATE user 
+UPDATE chat_user 
 SET deleted = true, 
     deleted_at = NOW() 
 WHERE username = $1 

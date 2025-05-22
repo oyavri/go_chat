@@ -14,6 +14,10 @@ import (
 
 func Run() {
 	cfg := config.GetConfig()
+	// handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	// 	Level: slog.LevelDebug,
+	// })
+	// slog.SetDefault(slog.New(handler))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

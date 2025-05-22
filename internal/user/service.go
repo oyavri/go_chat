@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"log/slog"
 )
 
 type UserService struct {
@@ -17,6 +18,8 @@ func NewUserService(repo *UserRepository) *UserService {
 func (s *UserService) CreateUser(ctx context.Context, req CreateUserRequest) (User, error) {
 	user, err := s.repo.CreateUser(ctx, req.Username, req.Email)
 	if err != nil {
+		slog.Error("[UserService-CreateUser]", "Error", err)
+
 		return User{}, err
 	}
 

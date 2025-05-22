@@ -1,6 +1,7 @@
 package user
 
 import (
+	"log/slog"
 	"net/http"
 	"net/mail"
 
@@ -22,11 +23,13 @@ func (h *UserHandler) CreateUserHandler(ctx *gin.Context) {
 	var req CreateUserRequest
 
 	if err := ctx.BindJSON(&req); err != nil {
+		slog.Error("[UserHandler-CreateUserHandler]", "Error", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	if _, err := mail.ParseAddress(req.Email); err != nil {
+		slog.Error("[UserHandler-CreateUserHandler]", "Error", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email address"})
 		return
 	}
@@ -34,6 +37,7 @@ func (h *UserHandler) CreateUserHandler(ctx *gin.Context) {
 	user, err := h.service.CreateUser(ctx.Request.Context(), req)
 
 	if err != nil {
+		slog.Error("[UserHandler-CreateUserHandler]", "Error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
@@ -46,6 +50,7 @@ func (h *UserHandler) GetUserHandler(ctx *gin.Context) {
 	var req GetUserRequest
 
 	if err := ctx.BindUri(&req); err != nil {
+		slog.Error("[UserHandler-GetUserHandler]", "Error", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid path parameter"})
 		return
 	}
@@ -53,6 +58,7 @@ func (h *UserHandler) GetUserHandler(ctx *gin.Context) {
 	user, err := h.service.GetUserById(ctx.Request.Context(), req.UserId)
 
 	if err != nil {
+		slog.Error("[UserHandler-GetUserHandler]", "Error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
 		return
 	}
@@ -65,6 +71,7 @@ func (h *UserHandler) DeleteUserHandler(ctx *gin.Context) {
 	var req DeleteUserRequest
 
 	if err := ctx.BindUri(&req); err != nil {
+		slog.Error("[UserHandler-DeleteUserHandler]", "Error", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid path parameter"})
 		return
 	}
@@ -73,6 +80,7 @@ func (h *UserHandler) DeleteUserHandler(ctx *gin.Context) {
 	_, err := h.service.DeleteUserById(ctx.Request.Context(), req.UserId)
 
 	if err != nil {
+		slog.Error("[UserHandler-DeleteUserHandler]", "Error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
 		return
 	}
@@ -85,11 +93,13 @@ func (h *UserHandler) UpdateUserHandler(ctx *gin.Context) {
 	var req UpdateUserRequest
 
 	if err := ctx.BindUri(&req); err != nil {
+		slog.Error("[UserHandler-UpdateUserHandler]", "Error", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid path parameter"})
 		return
 	}
 
 	if err := ctx.BindJSON(&req); err != nil {
+		slog.Error("[UserHandler-UpdateUserHandler]", "Error", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
@@ -97,6 +107,7 @@ func (h *UserHandler) UpdateUserHandler(ctx *gin.Context) {
 	user, err := h.service.UpdateUserById(ctx.Request.Context(), req.UserId, req.NewUsername, req.NewEmail)
 
 	if err != nil {
+		slog.Error("[UserHandler-UpdateUserHandler]", "Error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}

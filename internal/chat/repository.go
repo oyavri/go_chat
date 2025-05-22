@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"errors"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -35,10 +36,12 @@ func NewChatRepository(pool *pgxpool.Pool) *ChatRepository {
 func (r *ChatRepository) SaveChat(ctx context.Context, userIdList []string) (Chat, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
+		slog.Error("[ChatRepository-SaveChat]", "Error", err)
 		return Chat{}, err
 	}
 	defer func() {
 		if err != nil {
+			slog.Error("[ChatRepository-SaveChat]", "Error", err)
 			tx.Rollback(ctx)
 		} else {
 			tx.Commit(ctx)
@@ -49,6 +52,7 @@ func (r *ChatRepository) SaveChat(ctx context.Context, userIdList []string) (Cha
 	err = tx.QueryRow(ctx, createChatQuery).
 		Scan(&chatId)
 	if err != nil {
+		slog.Error("[ChatRepository-SaveChat]", "Error", err)
 		return Chat{}, err
 	}
 
@@ -59,6 +63,7 @@ func (r *ChatRepository) SaveChat(ctx context.Context, userIdList []string) (Cha
 		err := tx.QueryRow(ctx, addChatMemberByIdQuery, chatId, userId).
 			Scan(&addedUserId)
 		if err != nil {
+			slog.Error("[ChatRepository-SaveChat]", "Error", err)
 			return Chat{}, err
 		}
 
@@ -83,6 +88,7 @@ func (r *ChatRepository) SaveMessage(ctx context.Context, userId string, chatId 
 			&message.CreatedAt,
 		)
 	if err != nil {
+		slog.Error("[ChatRepository-SaveMessage]", "Error", err)
 		return Message{}, err
 	}
 
@@ -94,6 +100,7 @@ func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, message
 
 	rows, err := r.pool.Query(ctx, getMessagesByChatIdQuery, chatId, count, offset)
 	if err != nil {
+		slog.Error("[ChatRepository-GetMessages]", "Error", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -110,12 +117,14 @@ func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, message
 		)
 
 		if err != nil {
+			slog.Error("[ChatRepository-GetMessages]", "Error", err)
 			return nil, err
 		}
 		messages = append(messages, message)
 	}
 
 	if err := rows.Err(); err != nil {
+		slog.Error("[ChatRepository-GetMessages]", "Error", err)
 		return nil, err
 	}
 
@@ -125,6 +134,8 @@ func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, message
 func (r *ChatRepository) IsMemberOfChatById(ctx context.Context, userId string, chatId string) (bool, error) {
 	_, err := r.pool.Query(ctx, isMemberOfChatByIdQuery, userId, chatId)
 	if err != nil {
+		slog.Error("[ChatRepository-IsMemberOfChatById]", "Error", err)
+
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, &UserIsNotAMemberError{}
 		}
@@ -139,6 +150,8 @@ func (r *ChatRepository) IsMemberOfChatById(ctx context.Context, userId string, 
 func (r *ChatRepository) GetChatById(ctx context.Context, chatId string) (bool, error) {
 	err := r.pool.QueryRow(ctx, getChatByIdQuery, chatId).Scan()
 	if err != nil {
+		slog.Error("[ChatRepository-GetChatById]", "Error", err)
+
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, &ChatDoesNotExistError{}
 		}

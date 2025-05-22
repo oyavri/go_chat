@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"log/slog"
 )
 
 type ChatService struct {
@@ -17,6 +18,7 @@ func NewChatService(repo *ChatRepository) *ChatService {
 func (s *ChatService) CreateChat(ctx context.Context, chatReq CreateChatRequest) (Chat, error) {
 	chat, err := s.repo.SaveChat(ctx, chatReq.Members)
 	if err != nil {
+		slog.Error("[ChatService-CreateChat]", "Error", err)
 		return Chat{}, err
 	}
 
@@ -25,6 +27,7 @@ func (s *ChatService) CreateChat(ctx context.Context, chatReq CreateChatRequest)
 
 func (s *ChatService) SendMessage(ctx context.Context, req SendMessageRequest) (Message, error) {
 	if ok, err := s.repo.IsMemberOfChatById(ctx, req.UserId, req.ChatId); !ok {
+		slog.Error("[ChatService-CreateChat]", "Error", err)
 		return Message{}, err
 	}
 

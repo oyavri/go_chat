@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -51,6 +52,8 @@ func (r *UserRepository) CreateUser(ctx context.Context, username string, email 
 		)
 
 	if err != nil {
+		slog.Error("[UserRepository-CreateUser]", "Error", err)
+
 		// Need to check other errors, it might be due to unique username
 		return User{}, err
 		// return User{}, &UserAlreadyExistsError{}
@@ -73,6 +76,7 @@ func (r *UserRepository) GetUserById(ctx context.Context, userId string) (User, 
 		)
 
 	if err != nil {
+		slog.Error("[UserRepository-GetUserById]", "Error", err)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return User{}, &UserDoesNotExistError{}
 		}
@@ -97,6 +101,8 @@ func (r *UserRepository) DeleteUserById(ctx context.Context, userId string) (Use
 		)
 
 	if err != nil {
+		slog.Error("[UserRepository-DeleteUserById]", "Error", err)
+
 		// Need to check other errors if there is any
 		if errors.Is(err, pgx.ErrNoRows) {
 			return User{}, &UserDoesNotExistError{}
@@ -124,6 +130,8 @@ func (r *UserRepository) UpdateUserById(ctx context.Context, userId *string, new
 	}
 
 	if len(setClauses) == 0 {
+		slog.Error("[UserRepository-UpdateUserById]", "Error", "no fields to update")
+
 		return User{}, errors.New("no fields to update")
 	}
 
@@ -149,6 +157,8 @@ func (r *UserRepository) UpdateUserById(ctx context.Context, userId *string, new
 		)
 
 	if err != nil {
+		slog.Error("[UserRepository-UpdateUserById]", "Error", err)
+
 		// Need to check other errors if there is any
 		if errors.Is(err, pgx.ErrNoRows) {
 			return User{}, &UserDoesNotExistError{}
@@ -174,6 +184,7 @@ func (r *UserRepository) GetUserByUsername(ctx context.Context, username string)
 		)
 
 	if err != nil {
+		slog.Error("[UserRepository-GetUserByUsername]", "Error", err)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return User{}, &UserDoesNotExistError{}
 		}
@@ -197,6 +208,8 @@ func (r *UserRepository) DeleteUserByUsername(ctx context.Context, username stri
 			&user.Deleted,
 		)
 	if err != nil {
+		slog.Error("[UserRepository-DeleteUserByUsername]", "Error", err)
+
 		// Need to check other errors if there is any
 		if errors.Is(err, pgx.ErrNoRows) {
 			return User{}, &UserDoesNotExistError{}
@@ -224,6 +237,8 @@ func (r *UserRepository) UpdateUserByUsername(ctx context.Context, userId *strin
 	}
 
 	if len(setClauses) == 0 {
+		slog.Error("[UserRepository-UpdateUserByUsername]", "Error", "no fields to update")
+
 		return User{}, errors.New("no fields to update")
 	}
 
@@ -249,6 +264,8 @@ func (r *UserRepository) UpdateUserByUsername(ctx context.Context, userId *strin
 		)
 
 	if err != nil {
+		slog.Error("[UserRepository-UpdateUserByUsername]", "Error", err)
+
 		// Need to check other errors if there is any
 		if errors.Is(err, pgx.ErrNoRows) {
 			return User{}, &UserDoesNotExistError{}

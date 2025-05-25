@@ -4,9 +4,11 @@ import (
 	"context"
 	_ "embed"
 	"errors"
+	"go_chat/internal/user"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,6 +36,10 @@ func NewChatRepository(pool *pgxpool.Pool) *ChatRepository {
 }
 
 func (r *ChatRepository) SaveChat(ctx context.Context, userIdList []string) (Chat, error) {
+	if len(userIdList) == 0 {
+		return Chat{}, &NoUserIdProvidedError{}
+	}
+
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		slog.Error("[ChatRepository-SaveChat]", "Error", err)
@@ -53,6 +59,15 @@ func (r *ChatRepository) SaveChat(ctx context.Context, userIdList []string) (Cha
 		Scan(&chatId)
 	if err != nil {
 		slog.Error("[ChatRepository-SaveChat]", "Error", err)
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			// invalid input syntax for type uuid
+			if pgErr.Code == "22P02" {
+				return Chat{}, &ChatDoesNotExistError{}
+			}
+		}
+
 		return Chat{}, err
 	}
 
@@ -64,6 +79,15 @@ func (r *ChatRepository) SaveChat(ctx context.Context, userIdList []string) (Cha
 			Scan(&addedUserId)
 		if err != nil {
 			slog.Error("[ChatRepository-SaveChat]", "Error", err)
+
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) {
+				// invalid input syntax for type uuid
+				if pgErr.Code == "22P02" {
+					return Chat{}, &user.UserDoesNotExistError{}
+				}
+			}
+
 			return Chat{}, err
 		}
 
@@ -77,6 +101,10 @@ func (r *ChatRepository) SaveChat(ctx context.Context, userIdList []string) (Cha
 }
 
 func (r *ChatRepository) SaveMessage(ctx context.Context, userId string, chatId string, content string) (Message, error) {
+	if len(content) == 0 {
+		return Message{}, &MessageContentIsEmptyError{}
+	}
+
 	var message Message
 
 	err := r.pool.QueryRow(ctx, saveMessageQuery, userId, chatId, content).
@@ -87,8 +115,19 @@ func (r *ChatRepository) SaveMessage(ctx context.Context, userId string, chatId 
 			&message.Content,
 			&message.CreatedAt,
 		)
+
 	if err != nil {
 		slog.Error("[ChatRepository-SaveMessage]", "Error", err)
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			// invalid input syntax for type uuid
+			if pgErr.Code == "22P02" {
+				// Either userId or chatId is not in the form of UUID
+				return Message{}, &ChatDoesNotExistError{}
+			}
+		}
+
 		return Message{}, err
 	}
 
@@ -101,6 +140,13 @@ func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, message
 	rows, err := r.pool.Query(ctx, getMessagesByChatIdQuery, chatId, count, offset)
 	if err != nil {
 		slog.Error("[ChatRepository-GetMessages]", "Error", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			// invalid input syntax for type uuid
+			if pgErr.Code == "22P02" {
+				return nil, &ChatDoesNotExistError{}
+			}
+		}
 		return nil, err
 	}
 	defer rows.Close()
@@ -132,12 +178,21 @@ func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, message
 }
 
 func (r *ChatRepository) IsMemberOfChatById(ctx context.Context, userId string, chatId string) (bool, error) {
-	_, err := r.pool.Query(ctx, isMemberOfChatByIdQuery, userId, chatId)
+	_, err := r.pool.Exec(ctx, isMemberOfChatByIdQuery, userId, chatId)
 	if err != nil {
 		slog.Error("[ChatRepository-IsMemberOfChatById]", "Error", err)
 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, &UserIsNotAMemberError{}
+		}
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			// invalid input syntax for type uuid
+			if pgErr.Code == "22P02" {
+				// Either chatId or userId is not in the form of UUID
+				return false, &UserIsNotAMemberError{}
+			}
 		}
 
 		// if there is another type of error
@@ -148,12 +203,20 @@ func (r *ChatRepository) IsMemberOfChatById(ctx context.Context, userId string, 
 }
 
 func (r *ChatRepository) GetChatById(ctx context.Context, chatId string) (bool, error) {
-	err := r.pool.QueryRow(ctx, getChatByIdQuery, chatId).Scan()
+	_, err := r.pool.Exec(ctx, getChatByIdQuery, chatId)
 	if err != nil {
 		slog.Error("[ChatRepository-GetChatById]", "Error", err)
 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, &ChatDoesNotExistError{}
+		}
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			// invalid input syntax for type uuid
+			if pgErr.Code == "22P02" {
+				return false, &ChatDoesNotExistError{}
+			}
 		}
 
 		// if there is another type of error

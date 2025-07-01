@@ -87,83 +87,49 @@ func TestRepository_CreateUser(t *testing.T) {
 	defer testDb.Terminate(ctx)
 
 	repo := user.NewUserRepository(testDb.Pool)
+	t.Run("create user successfully", func(t *testing.T) {
+		username := "test_user"
+		email := "test@example.org"
 
-	username := "test_user"
-	email := "test@example.org"
+		testUser, err := repo.CreateUser(ctx, username, email)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Username, username)
+		require.Equal(t, testUser.Email, email)
+	})
 
-	testUser, err := repo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Username, username)
-	require.Equal(t, testUser.Email, email)
-}
+	t.Run("fail to create user with empty username", func(t *testing.T) {
+		username := ""
+		email := "test2@example.org"
 
-func TestRepository_CreateUser_WithEmptyUsername(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+		_, err = repo.CreateUser(ctx, username, email)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.UsernameIsEmptyError{})
+	})
 
-	repo := user.NewUserRepository(testDb.Pool)
+	t.Run("fail to create user without valid email", func(t *testing.T) {
+		username := "test_user3"
+		email := "test"
 
-	username := ""
-	email := "test@example.org"
+		_, err = repo.CreateUser(ctx, username, email)
+		require.Error(t, err)
+	})
 
-	_, err = repo.CreateUser(ctx, username, email)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UsernameIsEmptyError{})
-}
+	t.Run("fail to create user with existing username", func(t *testing.T) {
+		username := "test_user"
+		email := "test4@example.org"
 
-func TestRepository_CreateUser_WithoutValidEmail(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+		_, err = repo.CreateUser(ctx, username, email)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.UsernameIsTakenError{})
+	})
 
-	repo := user.NewUserRepository(testDb.Pool)
+	t.Run("create user with existing email successfully", func(t *testing.T) {
+		username := "test_user5"
+		email := "test@example.org"
 
-	username := "test_user"
-	email := "test"
-
-	_, err = repo.CreateUser(ctx, username, email)
-	require.Error(t, err)
-}
-
-func TestRepository_CreateUser_WithExistingUsername(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	repo := user.NewUserRepository(testDb.Pool)
-
-	username := "existing_user"
-	email := "test@example.org"
-
-	_, err = repo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-
-	_, err = repo.CreateUser(ctx, username, email)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UsernameIsTakenError{})
-}
-
-func TestRepository_CreateUser_WithExistingEmail(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	repo := user.NewUserRepository(testDb.Pool)
-
-	username := "test_user"
-	email := "test@example.org"
-
-	_, err = repo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-
-	username = "test_user2"
-	_, err = repo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
+		_, err = repo.CreateUser(ctx, username, email)
+		require.NoError(t, err)
+	})
 }
 
 func TestRepository_GetUserById(t *testing.T) {
@@ -173,31 +139,25 @@ func TestRepository_GetUserById(t *testing.T) {
 	defer testDb.Terminate(ctx)
 
 	repo := user.NewUserRepository(testDb.Pool)
-
 	username := "test_user"
 	email := "test@example.org"
 
 	testUser, err := repo.CreateUser(ctx, username, email)
 	require.NoError(t, err)
 
-	testUserFromDB, err := repo.GetUserById(ctx, testUser.Id)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Username, testUserFromDB.Username)
-	require.Equal(t, testUser.Email, testUserFromDB.Email)
-}
+	t.Run("get existing user by id successfully", func(t *testing.T) {
+		testUserFromDB, err := repo.GetUserById(ctx, testUser.Id)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Username, testUserFromDB.Username)
+	})
 
-func TestRepository_GetUserById_NotExistingUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+	t.Run("try to get non-existing user by id", func(t *testing.T) {
+		notExistingUserId := uuid.New().String()
+		_, err = repo.GetUserById(ctx, notExistingUserId)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.UserDoesNotExistError{})
+	})
 
-	repo := user.NewUserRepository(testDb.Pool)
-
-	notExistingUserId := "this-user-id-does-not-exist"
-	_, err = repo.GetUserById(ctx, notExistingUserId)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UserDoesNotExistError{})
 }
 
 func TestRepository_DeleteUserById(t *testing.T) {
@@ -207,61 +167,34 @@ func TestRepository_DeleteUserById(t *testing.T) {
 	defer testDb.Terminate(ctx)
 
 	repo := user.NewUserRepository(testDb.Pool)
-
 	username := "test_user"
 	email := "test@example.org"
 
 	testUser, err := repo.CreateUser(ctx, username, email)
 	require.NoError(t, err)
-	require.Equal(t, testUser.Deleted, false)
 
-	testUser, err = repo.DeleteUserById(ctx, testUser.Id)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Deleted, true)
-}
+	t.Run("delete user by id successfully", func(t *testing.T) {
+		require.Equal(t, testUser.Deleted, false)
 
-func TestRepository_DeleteUserById_NotExistingUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+		testUser, err = repo.DeleteUserById(ctx, testUser.Id)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Deleted, true)
+	})
 
-	repo := user.NewUserRepository(testDb.Pool)
+	t.Run("try to delete non-existing user by id", func(t *testing.T) {
+		notExistingUserId := uuid.New().String()
+		_, err = repo.DeleteUserById(ctx, notExistingUserId)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.UserDoesNotExistError{})
+	})
 
-	notExistingUserId := "this-user-id-does-not-exist"
-	_, err = repo.DeleteUserById(ctx, notExistingUserId)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UserDoesNotExistError{})
+	t.Run("delete already deleted user by id", func(t *testing.T) {
+		require.Equal(t, testUser.Deleted, true)
 
-	notExistingUserId = uuid.New().String()
-	_, err = repo.DeleteUserById(ctx, notExistingUserId)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UserDoesNotExistError{})
-}
-
-func TestRepository_DeleteUserById_AlreadyDeletedUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	repo := user.NewUserRepository(testDb.Pool)
-
-	username := "test_user"
-	email := "test@example.org"
-
-	testUser, err := repo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Deleted, false)
-
-	testUser, err = repo.DeleteUserById(ctx, testUser.Id)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Deleted, true)
-
-	testUser, err = repo.DeleteUserById(ctx, testUser.Id)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Deleted, true)
-
+		testUser, err = repo.DeleteUserById(ctx, testUser.Id)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Deleted, true)
+	})
 }
 
 func TestRepository_UpdateUserById(t *testing.T) {
@@ -278,83 +211,54 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	testUser, err := repo.CreateUser(ctx, username, email)
 	require.NoError(t, err)
 
-	newUsername := "test_user2"
-	testUser, err = repo.UpdateUserById(ctx, &testUser.Id, &newUsername, nil)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Username, newUsername)
+	t.Run("update username by user id successfully", func(t *testing.T) {
+		newUsername := "test_user2"
+		testUser, err = repo.UpdateUserById(ctx, &testUser.Id, &newUsername, nil)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Username, newUsername)
+	})
 
-	newEmail := "test2@example.org"
-	testUser, err = repo.UpdateUserById(ctx, &testUser.Id, nil, &newEmail)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Email, newEmail)
+	t.Run("update email by user id successfully", func(t *testing.T) {
+		newUsername := "test_user2"
+		testUser, err = repo.UpdateUserById(ctx, &testUser.Id, &newUsername, nil)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Username, newUsername)
+	})
 
-	testUser, err = repo.UpdateUserById(ctx, &testUser.Id, &username, &email)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Username, username)
-	require.Equal(t, testUser.Email, email)
-}
+	t.Run("update both username and email by user id successfully", func(t *testing.T) {
+		require.NotEqual(t, testUser.Username, username)
+		require.NotEqual(t, testUser.Email, email)
 
-func TestRepository_UpdateUserById_WithoutData(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+		testUser, err = repo.UpdateUserById(ctx, &testUser.Id, &username, &email)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Username, username)
+		require.Equal(t, testUser.Email, email)
+	})
 
-	repo := user.NewUserRepository(testDb.Pool)
+	t.Run("update user by id without any data", func(t *testing.T) {
+		testUser, err = repo.UpdateUserById(ctx, &testUser.Id, nil, nil)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.NoFieldToUpdateError{})
+	})
 
-	username := "test_user"
-	email := "test@example.org"
+	t.Run("try to update non-existing user by id", func(t *testing.T) {
+		notExistingUserId := uuid.New().String()
+		newUsername := "test"
 
-	testUser, err := repo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
+		_, err = repo.UpdateUserById(ctx, &notExistingUserId, &newUsername, nil)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.UserDoesNotExistError{})
+	})
 
-	testUser, err = repo.UpdateUserById(ctx, &testUser.Id, nil, nil)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.NoFieldToUpdateError{})
-}
+	t.Run("try to update username with existing username by id", func(t *testing.T) {
+		otherUsername := "test_user2"
+		testUser, err := repo.CreateUser(ctx, otherUsername, email)
+		require.NoError(t, err)
 
-func TestRepository_UpdateUserById_NotExistingUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	repo := user.NewUserRepository(testDb.Pool)
-
-	notExistingUserId := "this-user-id-does-not-exist"
-	newUsername := "test"
-
-	_, err = repo.UpdateUserById(ctx, &notExistingUserId, &newUsername, nil)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UserDoesNotExistError{})
-
-	notExistingUserId = uuid.New().String()
-	_, err = repo.UpdateUserById(ctx, &notExistingUserId, &newUsername, nil)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UserDoesNotExistError{})
-}
-
-func TestRepository_UpdateUserById_WithExistingUsername(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	repo := user.NewUserRepository(testDb.Pool)
-
-	username := "test_user"
-	email := "test@example.org"
-
-	_, err = repo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-
-	otherUsername := "test_user2"
-	testUser, err := repo.CreateUser(ctx, otherUsername, email)
-	require.NoError(t, err)
-
-	testUser, err = repo.UpdateUserById(ctx, &testUser.Id, &username, nil)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UsernameIsTakenError{})
+		testUser, err = repo.UpdateUserById(ctx, &testUser.Id, &username, nil)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.UsernameIsTakenError{})
+	})
 }
 
 func TestRepository_GetUserByUsername(t *testing.T) {
@@ -371,24 +275,19 @@ func TestRepository_GetUserByUsername(t *testing.T) {
 	testUser, err := repo.CreateUser(ctx, username, email)
 	require.NoError(t, err)
 
-	testUserFromDB, err := repo.GetUserByUsername(ctx, testUser.Username)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Username, testUserFromDB.Username)
-	require.Equal(t, testUser.Email, testUserFromDB.Email)
-}
+	t.Run("get user by username successfully", func(t *testing.T) {
+		testUserFromDB, err := repo.GetUserByUsername(ctx, testUser.Username)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Username, testUserFromDB.Username)
+		require.Equal(t, testUser.Email, testUserFromDB.Email)
+	})
 
-func TestRepository_GetUserByUsername_NotExistingUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	repo := user.NewUserRepository(testDb.Pool)
-
-	notExistingUsername := "this-username-does-not-exist"
-	_, err = repo.GetUserByUsername(ctx, notExistingUsername)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UserDoesNotExistError{})
+	t.Run("try to get non-existing user by username", func(t *testing.T) {
+		notExistingUsername := "this-username-does-not-exist"
+		_, err = repo.GetUserByUsername(ctx, notExistingUsername)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.UserDoesNotExistError{})
+	})
 }
 
 func TestRepository_DeleteUserByUsername(t *testing.T) {
@@ -404,50 +303,29 @@ func TestRepository_DeleteUserByUsername(t *testing.T) {
 
 	testUser, err := repo.CreateUser(ctx, username, email)
 	require.NoError(t, err)
-	require.Equal(t, testUser.Deleted, false)
 
-	testUser, err = repo.DeleteUserByUsername(ctx, testUser.Username)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Deleted, true)
+	t.Run("delete user by username successfully", func(t *testing.T) {
+		require.Equal(t, testUser.Deleted, false)
 
-}
+		testUser, err = repo.DeleteUserByUsername(ctx, testUser.Username)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Deleted, true)
+	})
 
-func TestRepository_DeleteUserByUsername_NotExistingUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+	t.Run("try to delete non-existing user by username", func(t *testing.T) {
+		notExistingUsername := "this-username-does-not-exist"
+		_, err = repo.DeleteUserByUsername(ctx, notExistingUsername)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.UserDoesNotExistError{})
+	})
 
-	repo := user.NewUserRepository(testDb.Pool)
+	t.Run("delete already deleted user by username", func(t *testing.T) {
+		require.Equal(t, testUser.Deleted, true)
 
-	notExistingUsername := "this-username-does-not-exist"
-	_, err = repo.DeleteUserByUsername(ctx, notExistingUsername)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UserDoesNotExistError{})
-}
-
-func TestRepository_DeleteUserByUsername_AlreadyDeletedUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	repo := user.NewUserRepository(testDb.Pool)
-
-	username := "test_user"
-	email := "test@example.org"
-
-	testUser, err := repo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Deleted, false)
-
-	testUser, err = repo.DeleteUserByUsername(ctx, testUser.Username)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Deleted, true)
-
-	testUser, err = repo.DeleteUserByUsername(ctx, testUser.Username)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Deleted, true)
+		testUser, err = repo.DeleteUserByUsername(ctx, testUser.Username)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Deleted, true)
+	})
 }
 
 func TestRepository_UpdateUserByUsername(t *testing.T) {
@@ -464,76 +342,49 @@ func TestRepository_UpdateUserByUsername(t *testing.T) {
 	testUser, err := repo.CreateUser(ctx, username, email)
 	require.NoError(t, err)
 
-	newUsername := "test_user2"
-	testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, &newUsername, nil)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Username, newUsername)
+	t.Run("update username by username", func(t *testing.T) {
+		newUsername := "test_user2"
+		testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, &newUsername, nil)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Username, newUsername)
+	})
 
-	newEmail := "test2@example.org"
-	testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, nil, &newEmail)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Email, newEmail)
+	t.Run("update email by username", func(t *testing.T) {
+		newEmail := "test2@example.org"
+		testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, nil, &newEmail)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Email, newEmail)
+	})
 
-	testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, &username, &email)
-	require.NoError(t, err)
-	require.Equal(t, testUser.Username, username)
-	require.Equal(t, testUser.Email, email)
-}
+	t.Run("update both username and email by username", func(t *testing.T) {
+		testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, &username, &email)
+		require.NoError(t, err)
+		require.Equal(t, testUser.Username, username)
+		require.Equal(t, testUser.Email, email)
+	})
 
-func TestRepository_UpdateUserByUsername_WithoutData(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+	t.Run("update user by username without any data", func(t *testing.T) {
+		testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, nil, nil)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.NoFieldToUpdateError{})
+	})
 
-	repo := user.NewUserRepository(testDb.Pool)
+	t.Run("try to update non-existing user by username", func(t *testing.T) {
+		notExistingUsername := "this-username-does-not-exist"
+		newUsername := "test"
 
-	username := "test_user"
-	email := "test@example.org"
+		_, err = repo.UpdateUserByUsername(ctx, &notExistingUsername, &newUsername, nil)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.UserDoesNotExistError{})
+	})
 
-	testUser, err := repo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
+	t.Run("try to update username with existing username by username", func(t *testing.T) {
+		otherUsername := "test_user2"
+		testUser, err := repo.CreateUser(ctx, otherUsername, email)
+		require.NoError(t, err)
 
-	testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, nil, nil)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.NoFieldToUpdateError{})
-}
-
-func TestRepository_UpdateUserByUsername_NotExistingUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	repo := user.NewUserRepository(testDb.Pool)
-
-	notExistingUsername := "this-username-does-not-exist"
-	newUsername := "test"
-
-	_, err = repo.UpdateUserByUsername(ctx, &notExistingUsername, &newUsername, nil)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UserDoesNotExistError{})
-}
-
-func TestRepository_UpdateUserByUsername_WithExistingUsername(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	repo := user.NewUserRepository(testDb.Pool)
-
-	username := "test_user"
-	email := "test@example.org"
-
-	_, err = repo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-
-	otherUsername := "test_user2"
-	testUser, err := repo.CreateUser(ctx, otherUsername, email)
-	require.NoError(t, err)
-
-	testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, &username, nil)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &user.UsernameIsTakenError{})
+		testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, &username, nil)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &user.UsernameIsTakenError{})
+	})
 }

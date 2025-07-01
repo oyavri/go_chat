@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/mail"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -35,30 +34,13 @@ type UserRepository struct {
 	pool *pgxpool.Pool
 }
 
-func isValidUsername(username string) bool {
-	return len(username) >= 1
-}
-
 func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	return &UserRepository{pool: pool}
 }
 
 func (r *UserRepository) CreateUser(ctx context.Context, username string, email string) (User, error) {
 	var user User
-
-	// Should this exist here or in the handler or both?
-	if !isValidUsername(username) {
-		slog.Error("[UserRepository-CreateUser]", "Error", &UsernameIsEmptyError{})
-		return User{}, &UsernameIsEmptyError{}
-	}
-
-	_, err := mail.ParseAddress(email)
-	if err != nil {
-		slog.Error("[UserRepository-CreateUser]", "Error", err)
-		return User{}, err
-	}
-
-	err = r.pool.QueryRow(ctx, createUserQuery, username, email).
+	err := r.pool.QueryRow(ctx, createUserQuery, username, email).
 		Scan(
 			&user.Id,
 			&user.Username,
@@ -105,14 +87,6 @@ func (r *UserRepository) GetUserById(ctx context.Context, userId string) (User, 
 			return User{}, &UserDoesNotExistError{}
 		}
 
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			// invalid input syntax for type uuid
-			if pgErr.Code == "22P02" {
-				return User{}, &UserDoesNotExistError{}
-			}
-		}
-
 		return User{}, errors.New("unknown error when trying to GET user by ID")
 	}
 
@@ -140,14 +114,6 @@ func (r *UserRepository) DeleteUserById(ctx context.Context, userId string) (Use
 			return User{}, &UserDoesNotExistError{}
 		}
 
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			// invalid input syntax for type uuid
-			if pgErr.Code == "22P02" {
-				return User{}, &UserDoesNotExistError{}
-			}
-		}
-
 		return User{}, errors.New("unknown error when trying to DELETE user by ID")
 	}
 
@@ -160,31 +126,14 @@ func (r *UserRepository) UpdateUserById(ctx context.Context, userId *string, new
 	paramIndex := 1
 
 	if newUsername != nil {
-		if !isValidUsername(*newUsername) {
-			slog.Error("[UserRepository-UpdateUserById]", "Error", &UsernameIsEmptyError{})
-			return User{}, &UsernameIsEmptyError{}
-		}
-
 		setClauses = append(setClauses, fmt.Sprintf("username = $%d", paramIndex))
 		args = append(args, *newUsername)
 		paramIndex++
 	}
 	if newEmail != nil {
-		_, err := mail.ParseAddress(*newEmail)
-		if err != nil {
-			slog.Error("[UserRepository-UpdateUserById]", "Error", err)
-			return User{}, err
-		}
-
 		setClauses = append(setClauses, fmt.Sprintf("email = $%d", paramIndex))
 		args = append(args, *newEmail)
 		paramIndex++
-	}
-
-	if len(setClauses) == 0 {
-		slog.Error("[UserRepository-UpdateUserById]", "Error", &NoFieldToUpdateError{})
-
-		return User{}, &NoFieldToUpdateError{}
 	}
 
 	setClauses = append(setClauses, "updated_at = NOW()")
@@ -222,10 +171,6 @@ func (r *UserRepository) UpdateUserById(ctx context.Context, userId *string, new
 			if pgErr.Code == "23505" {
 				return User{}, &UsernameIsTakenError{}
 			}
-			// Invalid input syntax for type uuid
-			if pgErr.Code == "22P02" {
-				return User{}, &UserDoesNotExistError{}
-			}
 		}
 
 		return User{}, errors.New("unknown error when trying to DELETE user by ID")
@@ -236,12 +181,6 @@ func (r *UserRepository) UpdateUserById(ctx context.Context, userId *string, new
 
 func (r *UserRepository) GetUserByUsername(ctx context.Context, username string) (User, error) {
 	var user User
-
-	if !isValidUsername(username) {
-		slog.Error("[UserRepository-GetUserByUsername]", "Error", &UsernameIsEmptyError{})
-		return User{}, &UsernameIsEmptyError{}
-	}
-
 	err := r.pool.QueryRow(ctx, getUserByUsernameQuery, username).
 		Scan(
 			&user.Id,
@@ -267,12 +206,6 @@ func (r *UserRepository) GetUserByUsername(ctx context.Context, username string)
 
 func (r *UserRepository) DeleteUserByUsername(ctx context.Context, username string) (User, error) {
 	var user User
-
-	if !isValidUsername(username) {
-		slog.Error("[UserRepository-DeleteUserByUsername]", "Error", &UsernameIsEmptyError{})
-		return User{}, &UsernameIsEmptyError{}
-	}
-
 	err := r.pool.QueryRow(ctx, deleteUserByUsernameQuery, username).
 		Scan(
 			&user.Id,
@@ -303,31 +236,14 @@ func (r *UserRepository) UpdateUserByUsername(ctx context.Context, userId *strin
 	paramIndex := 1
 
 	if newUsername != nil {
-		if !isValidUsername(*newUsername) {
-			slog.Error("[UserRepository-UpdateUserByUsername]", "Error", &UsernameIsEmptyError{})
-			return User{}, &UsernameIsEmptyError{}
-		}
-
 		setClauses = append(setClauses, fmt.Sprintf("username = $%d", paramIndex))
 		args = append(args, *newUsername)
 		paramIndex++
 	}
 	if newEmail != nil {
-		_, err := mail.ParseAddress(*newEmail)
-		if err != nil {
-			slog.Error("[UserRepository-UpdateUserByUsername]", "Error", err)
-			return User{}, err
-		}
-
 		setClauses = append(setClauses, fmt.Sprintf("email = $%d", paramIndex))
 		args = append(args, *newEmail)
 		paramIndex++
-	}
-
-	if len(setClauses) == 0 {
-		slog.Error("[UserRepository-UpdateUserByUsername]", "Error", &NoFieldToUpdateError{})
-
-		return User{}, &NoFieldToUpdateError{}
 	}
 
 	setClauses = append(setClauses, "updated_at = NOW()")

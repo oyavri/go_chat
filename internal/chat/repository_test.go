@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -79,7 +80,7 @@ func (c *TestDbContainer) Terminate(ctx context.Context) error {
 	return c.Container.Terminate(ctx)
 }
 
-func TestRepository_CreateChat_WithSingleUser(t *testing.T) {
+func TestRepository_CreateChat(t *testing.T) {
 	ctx := context.Background()
 	testDb, err := SetupTestDB(ctx)
 	require.NoError(t, err)
@@ -93,42 +94,25 @@ func TestRepository_CreateChat_WithSingleUser(t *testing.T) {
 	testUser, err := userRepo.CreateUser(ctx, username, email)
 	require.NoError(t, err)
 
-	_, err = chatRepo.SaveChat(ctx, []string{testUser.Id})
-	require.NoError(t, err)
-}
+	t.Run("create chat with single user", func(t *testing.T) {
+		_, err = chatRepo.SaveChat(ctx, []string{testUser.Id})
+		require.NoError(t, err)
+	})
 
-func TestRepository_CreateChat_WithMoreThanOneUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+	t.Run("create chat with multiple users", func(t *testing.T) {
+		username := "test_user2"
+		otherUser, err := userRepo.CreateUser(ctx, username, email)
+		require.NoError(t, err)
 
-	chatRepo := chat.NewChatRepository(testDb.Pool)
-	userRepo := user.NewUserRepository(testDb.Pool)
+		_, err = chatRepo.SaveChat(ctx, []string{testUser.Id, otherUser.Id})
+		require.NoError(t, err)
+	})
 
-	username := "test_user"
-	email := "test@example.org"
-	firstUser, err := userRepo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-
-	username = "test_user2"
-	secondUser, err := userRepo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-
-	_, err = chatRepo.SaveChat(ctx, []string{firstUser.Id, secondUser.Id})
-	require.NoError(t, err)
-}
-
-func TestRepository_CreateChat_WithoutUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	chatRepo := chat.NewChatRepository(testDb.Pool)
-	_, err = chatRepo.SaveChat(ctx, []string{})
-	require.Error(t, err)
-	require.ErrorIs(t, err, &chat.NoUserIdProvidedError{})
+	t.Run("create chat with no user", func(t *testing.T) {
+		_, err = chatRepo.SaveChat(ctx, []string{})
+		require.Error(t, err)
+		require.ErrorIs(t, err, &chat.NoUserIdProvidedError{})
+	})
 }
 
 func TestRepository_SaveMessage(t *testing.T) {
@@ -145,74 +129,28 @@ func TestRepository_SaveMessage(t *testing.T) {
 	testUser, err := userRepo.CreateUser(ctx, username, email)
 	require.NoError(t, err)
 
-	chat, err := chatRepo.SaveChat(ctx, []string{testUser.Id})
-	require.NoError(t, err)
-
-	testMessage := "This is a test message"
-	message, err := chatRepo.SaveMessage(ctx, testUser.Id, chat.Id, testMessage)
-
-	require.NoError(t, err)
-	require.Equal(t, message.ChatId, chat.Id)
-	require.Equal(t, message.UserId, testUser.Id)
-}
-
-func TestRepository_SaveMessage_EmptyMessage(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	chatRepo := chat.NewChatRepository(testDb.Pool)
-	userRepo := user.NewUserRepository(testDb.Pool)
-
-	username := "test_user"
-	email := "test@example.org"
-	testUser, err := userRepo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-
 	c, err := chatRepo.SaveChat(ctx, []string{testUser.Id})
 	require.NoError(t, err)
 
-	testMessage := ""
-	_, err = chatRepo.SaveMessage(ctx, testUser.Id, c.Id, testMessage)
+	t.Run("save message", func(t *testing.T) {
+		testMessage := "This is a test message"
+		message, err := chatRepo.SaveMessage(ctx, testUser.Id, c.Id, testMessage)
 
-	require.Error(t, err)
-	require.ErrorIs(t, err, &chat.MessageContentIsEmptyError{})
+		require.NoError(t, err)
+		require.Equal(t, message.ChatId, c.Id)
+		require.Equal(t, message.UserId, testUser.Id)
+	})
+
+	t.Run("save empty message", func(t *testing.T) {
+		testMessage := ""
+		_, err = chatRepo.SaveMessage(ctx, testUser.Id, c.Id, testMessage)
+
+		require.Error(t, err)
+		require.ErrorIs(t, err, &chat.MessageContentIsEmptyError{})
+	})
 }
 
 func TestRepository_GetMessages(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
-
-	chatRepo := chat.NewChatRepository(testDb.Pool)
-	userRepo := user.NewUserRepository(testDb.Pool)
-
-	username := "test_user"
-	email := "test@example.org"
-	testUser, err := userRepo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-
-	c, err := chatRepo.SaveChat(ctx, []string{testUser.Id})
-	require.NoError(t, err)
-
-	testMessage := "This is a test message"
-	message, err := chatRepo.SaveMessage(ctx, testUser.Id, c.Id, testMessage)
-
-	require.NoError(t, err)
-	require.Equal(t, message.ChatId, c.Id)
-	require.Equal(t, message.UserId, testUser.Id)
-
-	msgCount := 30
-	offset := 0
-
-	messages, err := chatRepo.GetMessages(ctx, c.Id, msgCount, offset)
-	require.NoError(t, err)
-	require.Equal(t, messages[0].Content, message.Content)
-}
-
-func TestRepository_GetMessages_WithOffset(t *testing.T) {
 	ctx := context.Background()
 	testDb, err := SetupTestDB(ctx)
 	require.NoError(t, err)
@@ -239,36 +177,34 @@ func TestRepository_GetMessages_WithOffset(t *testing.T) {
 	require.Equal(t, message.ChatId, c.Id)
 	require.Equal(t, message.UserId, testUser.Id)
 
-	msgCount := 1
-	offset := 1
+	t.Run("get messages", func(t *testing.T) {
+		msgCount := 30
+		offset := 0
 
-	messages, err := chatRepo.GetMessages(ctx, c.Id, msgCount, offset)
-	require.NoError(t, err)
-	require.Equal(t, messages[0].Content, message.Content)
-}
+		messages, err := chatRepo.GetMessages(ctx, c.Id, msgCount, offset)
+		require.NoError(t, err)
+		require.Equal(t, messages[0].Content, message.Content)
+	})
 
-func TestRepository_GetMessages_WithoutMessage(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+	t.Run("get messages with offset", func(t *testing.T) {
+		msgCount := 1
+		offset := 1
 
-	chatRepo := chat.NewChatRepository(testDb.Pool)
-	userRepo := user.NewUserRepository(testDb.Pool)
+		messages, err := chatRepo.GetMessages(ctx, c.Id, msgCount, offset)
+		require.NoError(t, err)
+		require.Equal(t, messages[0].Content, message.Content)
+	})
 
-	username := "test_user"
-	email := "test@example.org"
-	testUser, err := userRepo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
+	t.Run("get messages without message", func(t *testing.T) {
+		c, err := chatRepo.SaveChat(ctx, []string{testUser.Id})
+		require.NoError(t, err)
 
-	c, err := chatRepo.SaveChat(ctx, []string{testUser.Id})
-	require.NoError(t, err)
+		msgCount := 30
+		offset := 0
 
-	msgCount := 30
-	offset := 0
-
-	_, err = chatRepo.GetMessages(ctx, c.Id, msgCount, offset)
-	require.NoError(t, err)
+		_, err = chatRepo.GetMessages(ctx, c.Id, msgCount, offset)
+		require.NoError(t, err)
+	})
 }
 
 func TestRepository_IsMemberOfChatById(t *testing.T) {
@@ -288,16 +224,18 @@ func TestRepository_IsMemberOfChatById(t *testing.T) {
 	c, err := chatRepo.SaveChat(ctx, []string{testUser.Id})
 	require.NoError(t, err)
 
-	isMember, err := chatRepo.IsMemberOfChatById(ctx, testUser.Id, c.Id)
-	require.NoError(t, err)
-	require.Equal(t, isMember, true)
+	t.Run("is member of chat by id", func(t *testing.T) {
+		isMember, err := chatRepo.IsMemberOfChatById(ctx, testUser.Id, c.Id)
+		require.NoError(t, err)
+		require.Equal(t, isMember, true)
 
-	notExistingUserId := "this-user-id-does-not-exist"
+		notExistingUserId := "this-user-id-does-not-exist"
 
-	isMember, err = chatRepo.IsMemberOfChatById(ctx, notExistingUserId, c.Id)
-	require.Error(t, err)
-	require.ErrorIs(t, err, &chat.UserIsNotAMemberError{})
-	require.Equal(t, isMember, false)
+		isMember, err = chatRepo.IsMemberOfChatById(ctx, notExistingUserId, c.Id)
+		require.Error(t, err)
+		require.ErrorIs(t, err, &chat.UserIsNotAMemberError{})
+		require.Equal(t, isMember, false)
+	})
 }
 
 func TestRepository_GetChatById(t *testing.T) {
@@ -317,22 +255,17 @@ func TestRepository_GetChatById(t *testing.T) {
 	c, err := chatRepo.SaveChat(ctx, []string{testUser.Id})
 	require.NoError(t, err)
 
-	isChatExist, err := chatRepo.GetChatById(ctx, c.Id)
-	require.NoError(t, err)
-	require.Equal(t, isChatExist, true)
-}
+	t.Run("get chat by id", func(t *testing.T) {
+		isChatExist, err := chatRepo.GetChatById(ctx, c.Id)
+		require.NoError(t, err)
+		require.Equal(t, isChatExist, true)
+	})
 
-func TestRepository_GetChatById_NotExistingUser(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+	t.Run("get chat by non-existing id", func(t *testing.T) {
+		notExistingChatId := uuid.New().String()
 
-	chatRepo := chat.NewChatRepository(testDb.Pool)
-
-	notExistingChatId := "this-chat-id-does-not-exist"
-
-	isChatExist, err := chatRepo.GetChatById(ctx, notExistingChatId)
-	require.Error(t, err)
-	require.Equal(t, isChatExist, false)
+		isChatExist, err := chatRepo.GetChatById(ctx, notExistingChatId)
+		require.Error(t, err)
+		require.Equal(t, isChatExist, false)
+	})
 }

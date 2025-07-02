@@ -97,22 +97,26 @@ func TestRepository_CreateUser(t *testing.T) {
 		require.Equal(t, testUser.Email, email)
 	})
 
-	t.Run("fail to create user with empty username", func(t *testing.T) {
-		username := ""
-		email := "test2@example.org"
+	// Input validation is removed from the database layer, needs refactoring
 
-		_, err = repo.CreateUser(ctx, username, email)
-		require.Error(t, err)
-		require.ErrorIs(t, err, &user.UsernameIsEmptyError{})
-	})
+	// t.Run("fail to create user with empty username", func(t *testing.T) {
+	// 	username := ""
+	// 	email := "test2@example.org"
 
-	t.Run("fail to create user without valid email", func(t *testing.T) {
-		username := "test_user3"
-		email := "test"
+	// 	_, err = repo.CreateUser(ctx, username, email)
+	// 	require.Error(t, err)
+	// 	require.ErrorIs(t, err, &user.UsernameIsEmptyError{})
+	// })
 
-		_, err = repo.CreateUser(ctx, username, email)
-		require.Error(t, err)
-	})
+	// Input validation is removed from the database layer, needs refactoring
+
+	// t.Run("fail to create user without valid email", func(t *testing.T) {
+	// 	username := "test_user3"
+	// 	email := "test"
+
+	// 	_, err = repo.CreateUser(ctx, username, email)
+	// 	require.Error(t, err)
+	// })
 
 	t.Run("fail to create user with existing username", func(t *testing.T) {
 		username := "test_user"
@@ -219,10 +223,10 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("update email by user id successfully", func(t *testing.T) {
-		newUsername := "test_user2"
-		testUser, err = repo.UpdateUserById(ctx, &testUser.Id, &newUsername, nil)
+		newEmail := "test2@example.org"
+		testUser, err = repo.UpdateUserById(ctx, &testUser.Id, nil, &newEmail)
 		require.NoError(t, err)
-		require.Equal(t, testUser.Username, newUsername)
+		require.Equal(t, testUser.Email, newEmail)
 	})
 
 	t.Run("update both username and email by user id successfully", func(t *testing.T) {
@@ -235,11 +239,12 @@ func TestRepository_UpdateUserById(t *testing.T) {
 		require.Equal(t, testUser.Email, email)
 	})
 
-	t.Run("update user by id without any data", func(t *testing.T) {
-		testUser, err = repo.UpdateUserById(ctx, &testUser.Id, nil, nil)
-		require.Error(t, err)
-		require.ErrorIs(t, err, &user.NoFieldToUpdateError{})
-	})
+	// Needs refactoring as repository layer is not responsible there is no input data
+	// t.Run("update user by id without any data", func(t *testing.T) {
+	// 	testUser, err = repo.UpdateUserById(ctx, &testUser.Id, nil, nil)
+	// 	require.Error(t, err)
+	// 	require.ErrorIs(t, err, &user.NoFieldToUpdateError{})
+	// })
 
 	t.Run("try to update non-existing user by id", func(t *testing.T) {
 		notExistingUserId := uuid.New().String()
@@ -363,11 +368,12 @@ func TestRepository_UpdateUserByUsername(t *testing.T) {
 		require.Equal(t, testUser.Email, email)
 	})
 
-	t.Run("update user by username without any data", func(t *testing.T) {
-		testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, nil, nil)
-		require.Error(t, err)
-		require.ErrorIs(t, err, &user.NoFieldToUpdateError{})
-	})
+	// Needs refactoring as repository layer expects data to exist
+	// t.Run("update user by username without any data", func(t *testing.T) {
+	// 	testUser, err = repo.UpdateUserByUsername(ctx, &testUser.Username, nil, nil)
+	// 	require.Error(t, err)
+	// 	require.ErrorIs(t, err, &user.NoFieldToUpdateError{})
+	// })
 
 	t.Run("try to update non-existing user by username", func(t *testing.T) {
 		notExistingUsername := "this-username-does-not-exist"

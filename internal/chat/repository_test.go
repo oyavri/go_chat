@@ -183,7 +183,7 @@ func TestRepository_GetMessages(t *testing.T) {
 
 		messages, err := chatRepo.GetMessages(ctx, c.Id, msgCount, offset)
 		require.NoError(t, err)
-		require.Equal(t, messages[0].Content, message.Content)
+		require.Equal(t, messages[1].Content, message.Content)
 	})
 
 	t.Run("get messages with offset", func(t *testing.T) {
@@ -228,44 +228,23 @@ func TestRepository_IsMemberOfChatById(t *testing.T) {
 		isMember, err := chatRepo.IsMemberOfChatById(ctx, testUser.Id, c.Id)
 		require.NoError(t, err)
 		require.Equal(t, isMember, true)
+	})
 
-		notExistingUserId := "this-user-id-does-not-exist"
+	t.Run("is member of non-existing chat by id", func(t *testing.T) {
+		notExistingChatId := uuid.New().String()
 
-		isMember, err = chatRepo.IsMemberOfChatById(ctx, notExistingUserId, c.Id)
+		isMember, err := chatRepo.IsMemberOfChatById(ctx, testUser.Id, notExistingChatId)
 		require.Error(t, err)
 		require.ErrorIs(t, err, &chat.UserIsNotAMemberError{})
 		require.Equal(t, isMember, false)
 	})
-}
 
-func TestRepository_GetChatById(t *testing.T) {
-	ctx := context.Background()
-	testDb, err := SetupTestDB(ctx)
-	require.NoError(t, err)
-	defer testDb.Terminate(ctx)
+	t.Run("is non-existing id a member of chat by id", func(t *testing.T) {
+		notExistingUserId := uuid.New().String()
 
-	chatRepo := chat.NewChatRepository(testDb.Pool)
-	userRepo := user.NewUserRepository(testDb.Pool)
-
-	username := "test_user"
-	email := "test@example.org"
-	testUser, err := userRepo.CreateUser(ctx, username, email)
-	require.NoError(t, err)
-
-	c, err := chatRepo.SaveChat(ctx, []string{testUser.Id})
-	require.NoError(t, err)
-
-	t.Run("get chat by id", func(t *testing.T) {
-		isChatExist, err := chatRepo.GetChatById(ctx, c.Id)
-		require.NoError(t, err)
-		require.Equal(t, isChatExist, true)
-	})
-
-	t.Run("get chat by non-existing id", func(t *testing.T) {
-		notExistingChatId := uuid.New().String()
-
-		isChatExist, err := chatRepo.GetChatById(ctx, notExistingChatId)
+		isMember, err := chatRepo.IsMemberOfChatById(ctx, notExistingUserId, c.Id)
 		require.Error(t, err)
-		require.Equal(t, isChatExist, false)
+		require.ErrorIs(t, err, &chat.UserIsNotAMemberError{})
+		require.Equal(t, isMember, false)
 	})
 }

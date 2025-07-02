@@ -21,8 +21,6 @@ var (
 	getMessagesByChatIdQuery string
 	//go:embed sql/is_member_of_chat_by_id.sql
 	isMemberOfChatByIdQuery string
-	//go:embed sql/get_chat_by_id.sql
-	getChatByIdQuery string
 )
 
 type ChatRepository struct {
@@ -141,28 +139,18 @@ func (r *ChatRepository) GetMessages(ctx context.Context, chatId string, message
 }
 
 func (r *ChatRepository) IsMemberOfChatById(ctx context.Context, userId string, chatId string) (bool, error) {
-	_, err := r.pool.Exec(ctx, isMemberOfChatByIdQuery, userId, chatId)
+	var cId string
+	var uId string
+	err := r.pool.QueryRow(ctx, isMemberOfChatByIdQuery, userId, chatId).
+		Scan(
+			&cId,
+			&uId,
+		)
 	if err != nil {
 		slog.Error("[ChatRepository-IsMemberOfChatById]", "Error", err)
 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, &UserIsNotAMemberError{}
-		}
-
-		// if there is another type of error
-		return false, err
-	}
-
-	return true, nil
-}
-
-func (r *ChatRepository) GetChatById(ctx context.Context, chatId string) (bool, error) {
-	_, err := r.pool.Exec(ctx, getChatByIdQuery, chatId)
-	if err != nil {
-		slog.Error("[ChatRepository-GetChatById]", "Error", err)
-
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, &ChatDoesNotExistError{}
 		}
 
 		// if there is another type of error
